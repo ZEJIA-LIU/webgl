@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>绘制三角面</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+
+    #canvas {
+      background-color: antiquewhite;
+      height: 800px;
+      width: 800px;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="canvas"></canvas>
+  <!-- 顶点着色器 -->
+  <script id="vertexShader" type="x-shader/x-vertex">
+      attribute vec4 a_Attr;
+      //a_Attr是一个四维变量，其参数结构为(x,y,z,w),x,y代表位置，z代表顶点尺寸，w代表透明度
+      varying float v_Alpha;
+      void main(){
+          //点位
+          gl_Position=vec4(a_Attr.x,a_Attr.y,0.0,1.0);
+          //尺寸
+          gl_PointSize=a_Attr.z;
+          v_Alpha = a_Attr.w;
+      }
+    </script>
+  <!-- 片元着色器 -->
+  <script id="fragmentShader" type="x-shader/x-fragment">
+    precision mediump float;
+    varying float v_Alpha;
+    uniform bool u_IsPOINTS;
+    void main(){
+      if(u_IsPOINTS){
+        float dist=distance(gl_PointCoord,vec2(0.5,0.5));
+        if(dist < 0.5){
+          gl_FragColor=vec4(0.87,0.91,1.0,v_Alpha);
+        }else{
+          discard;
+        }
+      }else{
+        gl_FragColor=vec4(1,1,0,v_Alpha);
+      }
+    }
+  </script>
+  <script type="module">
+    import { initShaders, getPositionByMouse, glToCssPos } from "../jsm/Utils.js";
+    import Ploy from '../jsm/Poly.js'
+    import Sky from '../jsm/Sky.js';
+    import Compose from '../jsm/Compose.js';
+    import Track from '../jsm/Track.js';
+
+    const canvas = document.querySelector("#canvas");
+
+    canvas.width = 800;
+    canvas.height = 800;
+
+    // 获取着色器文本
+    const vsSource = document.querySelector("#vertexShader").innerText;
+    const fsSource = document.querySelector("#fragmentShader").innerText;
+
+    //三维画笔
+    const gl = canvas.getContext("webgl");
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+    //初始化着色器
+    initShaders(gl, vsSource, fsSource);
+
+    gl.clearColor(0, 0, 0, 1);
+    //刷底色
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    //夜空
+    const sky = new Sky(gl)
+    //合成对象
+    const compose = new Compose()
+
+    //声明两个变量，用于表示当前正在绘制的多边形和鼠标上的点
+    //多边形
+    let poly = null
+    //点
+    let point = null
+
+    //取消鼠标右键默认事件
+    canvas.oncontextmenu = () => {
+      return false
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      if (e.button === 2) {
+        popVertice()
+      } else {
+        const [x, y] = getPositionByMouse(e, canvas)
+        if (poly) {
+          addVertice(x, y)
+        } else {
+          createPoly(x, y)
+        }
+      }
+      render()
+    })
+
+    canvas.addEventListener('mousemove', (e) => {
+      const [x, y] = getPositionByMouse(e, canvas)
+      point = hoverPoint(x, y)
+      canvas.style.cursor = point ? 'pointer' : 'default'
+      if (poly) {
+        const obj = poly.geoData[poly.geoData.length - 1]
+        obj.x = x
+        obj.y = y
+      }
+    })
+    function createPoly(x, y) {
+      let o1 = point ? point : { x, y, pointSize: random(), alpha: 1 }
+      const o2 = { x, y, pointSize: random(), alpha: 1 }
+      poly = new Ploy({
+        size: 4,
+        attrName: 'a_Attr',
+        geoData: [o1, o2],
+        types: ['POINTS', 'LINE_STRIP']
+      })
+      sky.add(poly)
+      crtTrack(o1)
+      crtTrack(o2)
+    }
+
+    function addVertice(x, y) {
+      const { geoData } = poly
+      if (point) {
+        geoData[geoData.length - 1] = point
+      }
+      const obj = { x, y, pointSize: random(), alpha: 1 }
+      geoData.push(obj)
+      crtTrack(obj)
+    }
+    function popVertice() {
+      if (!poly) return
+      poly.geoData.pop()
+      compose.children.pop()
+      poly = null
+    }
+
+    function crtTrack(obj) {
+      const { pointSize } = obj
+      const track = new Track(obj)
+      track.start = new Date()
+      track.timeLen = 2000
+      track.loop = true
+      track.keyMap = new Map([
+        [
+          "posintsize",
+          [
+            [500, pointSize],
+            [1000, 0],
+            [1500, pointSize]
+          ]
+        ],
+        [
+          "alpha",
+          [
+            [500, 1],
+            [1000, 0],
+            [1500, 1]
+          ]
+        ]
+      ])
+      compose.add(track)
+    }
+
+    function hoverPoint(mx, my) {
+      for (let { geoData } of sky.children) {
+        for (let obj of geoData) {
+          if (poly && poly.geoData[poly.geoData.length - 1] === point) {
+            continue
+          }
+          const detal = {
+            x: mx - obj.x,
+            y: my - obj.y
+          }
+          const [x, y] = glToCssPos(detal, canvas)
+          const dist = x * x + y * y
+          if (dist < 100) {
+            return obj
+          }
+        }
+      }
+      return null
+    }
+    function random() {
+      return Math.random() * 8 + 3
+    }
+    function render() {
+      //刷底色
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      sky.draw()
+    }
+
+    !(function ani() {
+      compose.update(new Date())
+      sky.updateVertices(['x', 'y', 'pointSize', 'alpha'])
+      render()
+      requestAnimationFrame(ani)
+    })()
+
+  </script>
+</body>
+
+</html>

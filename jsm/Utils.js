@@ -28,4 +28,48 @@ function loadShader(gl, type, source) {
   return shader;
 }
 
-export { initShaders };
+function getPositionByMouse(e, canvas) {
+  //获取当前鼠标的clientX和clientY
+  const { clientX, clientY } = e;
+
+  //获取当前canvas元素的位置边界值
+  const { left, top, width, height } = canvas.getBoundingClientRect();
+
+  //获取当前点位在canvas元素中的x和y坐标
+  const [cssX, cssY] = [clientX - left, clientY - top];
+
+  //原点的css坐标
+  const [halfWidth, halfHeight] = [width / 2, height / 2];
+
+  //当前点和原点在css坐标上的差值
+  const [xBaseCenter, yBaseCenter] = [cssX - halfWidth, cssY - halfHeight];
+  const yBaseCenterTop = - yBaseCenter;
+
+  //差值除以单位比例 就是webgl坐标值
+  const [x, y] = [xBaseCenter / halfWidth, yBaseCenterTop / halfHeight];
+
+  return [x, y]
+}
+
+function glToCssPos({ x, y }, { width, height }) {
+  const unitHeight = height / 2
+  const unitWidth = width / 2
+
+  return [x * unitWidth, -y * unitHeight]
+}
+
+//线性比例尺
+function ScaleLinear(ax, ay, bx, by) {
+  const delta = {
+    x: bx - ax,
+    y: by - ay,
+  };
+  const k = delta.y / delta.x;
+  const b = ay - ax * k;
+  return function (x) {
+    return k * x + b;
+  };
+}
+
+
+export { initShaders, getPositionByMouse, glToCssPos, ScaleLinear };
