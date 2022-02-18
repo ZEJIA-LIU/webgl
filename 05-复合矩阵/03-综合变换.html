@@ -30,7 +30,7 @@
   </script>
   <script type="module">
     import { initShaders } from '../jsm/Utils.js';
-    import { Matrix4 } from 'https://unpkg.com/three/build/three.module.js';
+    import { Matrix4, Vector3, Quaternion } from 'https://unpkg.com/three/build/three.module.js';
 
     const canvas = document.getElementById('canvas');
     canvas.width = window.innerWidth;
@@ -55,19 +55,20 @@
     gl.enableVertexAttribArray(a_Position);
 
     const u_Matrix = gl.getUniformLocation(gl.program, 'u_Matrix')
-    const [bx, by] = [0.2, 0.2]
-    // const [cx, cy] = [0.3, 0.4]
-    const bm = new Matrix4().set(
-      1, 0, 0, bx,
-      0, 1, 0, by,
-      0, 0, 1, 0,
-      0, 0, 0, 1
-    )
+    //位移
+    const pos = new Vector3(0.3, 0, 0)
 
-    const cm = new Matrix4()
-    cm.makeRotationZ(Math.PI / 4)
-    const dm = cm.multiply(bm)
-    gl.uniformMatrix4fv(u_Matrix, false, dm.elements)
+    //旋转
+    const rot = new Quaternion()
+    rot.setFromAxisAngle(new Vector3(0, 0, 1), Math.PI / 4)
+
+    //缩放
+    const scale = new Vector3(2, 0.5, 1)
+
+    const matrix = new Matrix4()
+    matrix.compose(pos, rot, scale)
+
+    gl.uniformMatrix4fv(u_Matrix, false, matrix.elements)
 
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
