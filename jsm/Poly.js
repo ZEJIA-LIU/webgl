@@ -5,7 +5,8 @@ const defArrtr = () => ({
   size: 2,
   attrName: 'a_Position',
   count: 0,
-  types: ['POINTS']
+  types: ['POINTS'],
+  uniforms: {}
 })
 
 export default class Poly {
@@ -26,12 +27,27 @@ export default class Poly {
     this.updateBuffer()
     //获取attribute 变量
     const a_Position = gl.getAttribLocation(gl.program, attrName)
+    console.log(a_Position)
     //修改attribute变量
     gl.vertexAttribPointer(a_Position, size, gl.FLOAT, false, 0, 0)
     //赋能-批处理
     gl.enableVertexAttribArray(a_Position)
+    //更改uniform变量
+    this.updateUniform()
   }
 
+  updateUniform() {
+    const { gl, uniforms } = this
+    for (const [key, val] of Object.entries(uniforms)) {
+      const { type, value } = val
+      const u = gl.getUniformLocation(gl.program, key)
+      if (type.includes('Matrix')) {
+        gl[type](u, false, value)
+      } else {
+        gl[type](u, value)
+      }
+    }
+  }
   updateBuffer() {
     const { gl } = this
     this.updateCount()
@@ -75,6 +91,7 @@ export default class Poly {
 
   draw(types = this.types) {
     const { gl, count } = this
+
 
     for (let type of types) {
       gl.drawArrays(gl[type], 0, count)

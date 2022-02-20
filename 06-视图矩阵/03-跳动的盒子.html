@@ -106,9 +106,24 @@
 
 
     let angle = 0
+    const maxY = 0.7
+    const minY = -0.7
+    let y = maxY
+    let vy = 0
+    let ay = -0.001
+    const bounce = 0.8
+
     !(function ani() {
       angle += 0.02
+      vy += ay
+      y += vy
+
       modelMatrix.makeRotationX(angle)
+      modelMatrix.setPosition(0, y, 0)
+      if (modelMatrix.elements[13] < minY) {
+        y = minY
+        vy *= - bounce
+      }
       gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements)
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.drawArrays(gl.LINES, 0, indices.length);
