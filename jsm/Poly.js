@@ -27,7 +27,6 @@ export default class Poly {
     this.updateBuffer()
     //获取attribute 变量
     const a_Position = gl.getAttribLocation(gl.program, attrName)
-    console.log(a_Position)
     //修改attribute变量
     gl.vertexAttribPointer(a_Position, size, gl.FLOAT, false, 0, 0)
     //赋能-批处理
@@ -91,8 +90,6 @@ export default class Poly {
 
   draw(types = this.types) {
     const { gl, count } = this
-
-
     for (let type of types) {
       gl.drawArrays(gl[type], 0, count)
     }
