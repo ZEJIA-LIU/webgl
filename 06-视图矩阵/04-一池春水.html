@@ -63,16 +63,6 @@
       new Vector3(0, 1, 0)
     )
 
-    function generateVertices() {
-      const vertices = []
-      for (let z = minPosZ; z < maxPosZ; z += 0.04) {
-        for (let x = minPosX; x < maxPosX; x += 0.03) {
-          vertices.push(x, 0, z)
-        }
-      }
-      return vertices
-    }
-
     //更新顶点高度
     function updateVertices(offset = 0) {
       const { vertices } = wave
