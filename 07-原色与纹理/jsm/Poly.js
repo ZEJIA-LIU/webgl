@@ -115,6 +115,7 @@ export default class Poly {
 
   draw(types = this.types) {
     const { gl, sourceSize } = this
+
     for (let type of types) {
       gl.drawArrays(gl[type], 0, sourceSize)
     }
